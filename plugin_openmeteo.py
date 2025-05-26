@@ -89,25 +89,14 @@ def get_and_speak_weather(core: VACore, phrase: str):
 
     options = core.plugin_options(modname)  # Получаем настройки    
 
-    #params_list = []
-    #params_list.append(("latitude", options["latitude"]))
-    #params_list.append(("longitude", options["longitude"]))
-    #params_list.append(("timezone", options["timezone"]))
-
+    
     # expected_length Ожидаемая длина списков дней
     if options["forecast_days"] > MAX_forecast_days:
         expected_length = MAX_forecast_days # Ограничиваем запрос информации
     else:
         expected_length = options["forecast_days"]
 
-    #params_list.append(("forecast_days",  expected_length))
-
-    #for item in weather_params["daily"]:
-    #    params_list.append(("daily", item))
-
-    #for item in weather_params["current"]:
-    #    params_list.append(("current", item))
-
+   
     params = {
         "latitude": options["latitude"],
         "longitude": options["longitude"],
