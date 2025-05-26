@@ -4,4 +4,4 @@
 plugin_todolist.py - плагин "Список дел"
 
 plugin_openmeteo.py - плагин погоды open-meteo (api open-meteo.com)
-----------
+
