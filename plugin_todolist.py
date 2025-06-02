@@ -2,11 +2,15 @@
 # author: ntirs 
 
 import os
+import logging
+
+
 from vacore import VACore
 
 
-# Вычисляем имя модуля
 modname = os.path.basename(__file__)[:-3]  # calculating modname
+logger = logging.getLogger(__name__) 
+
 
 # функция на старте
 def start(core:VACore):
@@ -50,7 +54,7 @@ def read_todo_list(core:VACore, phrase: str):
     if not os.path.exists(TODO_FILE_PATH):
         message = "Файл со списком дел не найден."
         core.play_voice_assistant_speech(message)
-        print(message)
+        logger.info(f"{message}")
         return
 
     try:
@@ -60,24 +64,24 @@ def read_todo_list(core:VACore, phrase: str):
         if not lines:
             message = "Список дел пуст."
             core.play_voice_assistant_speech(message)
-            print(message)
+            logger.info(f"{message}")
             return
 
         message = "Ваш список дел:"
-        print(message)
+        logger.info(f"{message}")
         core.play_voice_assistant_speech(message)
 
         for i, line in enumerate(lines):
             task = line.strip()
             if task:  # Пропускаем пустые строки
                 task_message = f"Дело {i + 1}: {task}"
-                print(task_message)
+                logger.info(f"{task_message}")
                 core.play_voice_assistant_speech(task_message)
 
     except Exception as e:
         error_message = f"Произошла ошибка при чтении списка дел: {e}"
         core.play_voice_assistant_speech(error_message)
-        print(error_message)
+        logger.error(f"{error_message}")
 
 def new_todo(core:VACore, phrase: str): # в phrase находится остаток фразы после названия скилла,
                                               # если юзер сказал больше
@@ -93,7 +97,7 @@ def add_todo_item(core:VACore, phrase: str):
     if not item.strip():
         message = "Вы не указали, что нужно добавить в список дел."
         core.play_voice_assistant_speech(message)
-        print(message)
+        logger.info(f"{message}")
         return
 
     try:
@@ -103,12 +107,12 @@ def add_todo_item(core:VACore, phrase: str):
 
         message = f"Добавлено в список дел: {item.strip()}"
         core.play_voice_assistant_speech(message)
-        print(message) 
+        logger.info(f"{message}") 
 
     except Exception as e:
         error_message = f"Произошла ошибка при добавлении дела в список: {e}"
         core.play_voice_assistant_speech(error_message)
-        print(error_message)
+        logger.error(f"{error_message}")
 
 def clear_todo_list(core:VACore, phrase: str):
 
@@ -117,7 +121,7 @@ def clear_todo_list(core:VACore, phrase: str):
     if not os.path.exists(TODO_FILE_PATH):
         message = "Файл со списком дел не найден, нечего очищать."
         core.play_voice_assistant_speech(message)
-        print(message)
+        logger.info(f"{message}")
         return
 
     try:
@@ -127,9 +131,10 @@ def clear_todo_list(core:VACore, phrase: str):
 
         message = "Список дел очищен."
         core.play_voice_assistant_speech(message)
-        print(message) 
+        logger.info(f"{message}") 
 
     except Exception as e:
         error_message = f"Произошла ошибка при очистке списка дел: {e}"
         core.play_voice_assistant_speech(error_message)
-        print(error_message)
+        logger.error(f"{error_message}")
+

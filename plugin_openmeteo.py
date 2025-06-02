@@ -5,6 +5,7 @@ import os
 import requests
 import re
 from datetime import datetime
+import logging
 
 from vacore import VACore
 
@@ -12,6 +13,7 @@ from vacore import VACore
 MAX_forecast_days = 3 
 
 modname = os.path.basename(__file__)[:-3]  # calculating modname
+logger = logging.getLogger(__name__) 
 
 # Словарь для интерпретации кодов погоды WMO
 WMO_CODES = {
@@ -89,14 +91,13 @@ def get_and_speak_weather(core: VACore, phrase: str):
 
     options = core.plugin_options(modname)  # Получаем настройки    
 
-    
-    # expected_length Ожидаемая длина списков дней
     if options["forecast_days"] > MAX_forecast_days:
         expected_length = MAX_forecast_days # Ограничиваем запрос информации
+        logger.warning(f"Ограничение количества дней прогноза до {MAX_forecast_days}")
     else:
         expected_length = options["forecast_days"]
+        logger.debug(f"Запрошено дней прогноза: {expected_length}")
 
-   
     params = {
         "latitude": options["latitude"],
         "longitude": options["longitude"],
@@ -113,7 +114,7 @@ def get_and_speak_weather(core: VACore, phrase: str):
         response.raise_for_status()  # Исключение для плохих ответов (4xx или 5xx)
 
         weather_data = response.json()
-        #print("Полученные данные о погоде:", weather_data)  # Для отладки
+        logger.debug(f"Полученные данные о погоде: {weather_data}")
 
         # Извлекаем необходимые данные
         current_weather = weather_data.get("current", {})
@@ -124,7 +125,7 @@ def get_and_speak_weather(core: VACore, phrase: str):
         if not current_weather:
             message = "Не удалось получить данные о текущей погоде."
             core.play_voice_assistant_speech(message)
-            print(message)
+            logger.error(message)
             return
 
         weather_message_parts = []
@@ -150,14 +151,14 @@ def get_and_speak_weather(core: VACore, phrase: str):
 
         # Добавляем описание текущей погоды
         if current_weather_description:
-            weather_message_parts.append(f"Сейчас: {current_weather_description}.")
+            weather_message_parts.append(f"Сейчас: {current_weather_description}. ")
 
         if current_temp is not None:
-            weather_message_parts.append(f"Температура {current_temp}{temp_unit}.")
+            weather_message_parts.append(f"Температура {current_temp}{temp_unit}. ")
         if current_wind is not None:
-            weather_message_parts.append(f"Скорость ветра {current_wind} {wind_unit}.")
+            weather_message_parts.append(f"Скорость ветра {current_wind} {wind_unit}. ")
         if pressure_mmhg is not None:
-            weather_message_parts.append(f"Давление {pressure_mmhg} мм ртутного столба.")
+            weather_message_parts.append(f"Давление {pressure_mmhg} мм ртутного столба. ")
 
         # --- Прогноз на несколько дней (если есть) ---
          
@@ -190,29 +191,29 @@ def get_and_speak_weather(core: VACore, phrase: str):
 
                 # Добавляем общее описание погоды на день по weathercode
                 if daily_weather_description:
-                    daily_forecast.append(f"Прогноз на {day_text}: {daily_weather_description}.")
+                    daily_forecast.append(f"Прогноз на {day_text}: {daily_weather_description}. ")
 
                 if daily_temp_min is not None and daily_temp_max is not None:
-                    daily_forecast.append(f"Температура от {daily_temp_min} до {daily_temp_max}{temp_unit}.")
+                    daily_forecast.append(f"Температура от {daily_temp_min} до {daily_temp_max}{temp_unit}. ")
                 elif daily_temp_min is not None:
-                    daily_forecast.append(f"Минимальная температура {daily_temp_min}{temp_unit}.")
+                    daily_forecast.append(f"Минимальная температура {daily_temp_min}{temp_unit}. ")
                 elif daily_temp_max is not None:
-                    daily_forecast.append(f"Максимальная температура {daily_temp_max}{temp_unit}.")
+                    daily_forecast.append(f"Максимальная температура {daily_temp_max}{temp_unit}. ")
 
                 if daily_wind_max is not None:
-                    daily_forecast.append(f"Максимальный ветер до {daily_wind_max} {wind_unit}.")
+                    daily_forecast.append(f"Максимальный ветер до {daily_wind_max} {wind_unit}. ")
 
                 if daily_pressure_mmhg is not None:
-                    daily_forecast.append(f"Максимальное давление за день {daily_pressure_mmhg} мм ртутного столба.")
+                    daily_forecast.append(f"Максимальное давление за день {daily_pressure_mmhg} мм ртутного столба. ")
 
                 # Добавляем количество осадков, если они есть (больше 0)
                 if daily_precipitation_sum is not None and daily_precipitation_sum > 0:
-                     precipitation_info = f"Ожидается {daily_precipitation_sum} мм осадков."
+                     precipitation_info = f"Ожидается {daily_precipitation_sum} мм осадков. "
                      daily_forecast.append(precipitation_info)
 
                 # Объединение прогнозов для каждого дня
                 if daily_forecast:
-                    daily_message_parts.append(" ".join(daily_forecast))
+                    daily_message_parts.append("".join(daily_forecast))
 
             # Объединяем части сообщения о дневном прогнозе
             if daily_message_parts:
@@ -220,20 +221,20 @@ def get_and_speak_weather(core: VACore, phrase: str):
 
         # Собираем окончательное сообщение
         final_weather_message = "\n".join(weather_message_parts)
+        logger.info(f"{final_weather_message}") 
 
         # Озвучиваем и выводим сообщение
         final_weather_text = transform_text(final_weather_message)
-        core.play_voice_assistant_speech(final_weather_text)
-        print(final_weather_message)
+        core.play_voice_assistant_speech(final_weather_text)        
         
     except requests.exceptions.RequestException as e:
         error_message = f"Ошибка при получении данных о погоде: {e}"
         core.play_voice_assistant_speech(error_message)
-        print(error_message)
+        logger.error(error_message)
     except Exception as e:
         error_message = f"Произошла ошибка при обработке данных о погоде: {e}"
         core.play_voice_assistant_speech(error_message)
-        print(error_message)
+        logger.error(error_message)
 
 
 def transform_text(text):
@@ -329,7 +330,7 @@ def transform_text(text):
 
 
     # Регулярное выражение и функция для миллиметров осадков
-    pattern_precipitation = r"(\d+(\.\d+)?)\s+мм осадков\."
+    pattern_precipitation = r"(\d+(\.\d+)?)\s+мм осадков\. "
   
     
     def replace_precipitation(match):
@@ -351,7 +352,7 @@ def transform_text(text):
     text = re.sub(pattern_precipitation, replace_precipitation, text)
 
     # Регулярное выражение и функция для миллиметров ртутного столба
-    pattern_pressure_mmhg = r"(\d+(\.\d+)?)\s+мм ртутного столба\."
+    pattern_pressure_mmhg = r"(\d+(\.\d+)?)\s+мм ртутного столба\. "
 
     def replace_pressure_mmhg(match):
         amount_str = match.group(1)
@@ -363,7 +364,7 @@ def transform_text(text):
             
             millimeter_ending = get_millimeter_ending(amount) 
 
-            return f"{amount_str} {millimeter_ending} ртутного столба."
+            return f"{amount_str} {millimeter_ending} ртутного столба. "
 
         except ValueError:
             return match.group(0)
